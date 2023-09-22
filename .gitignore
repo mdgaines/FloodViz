@@ -1,3 +1,5 @@
 *.ini
 *.lnk
 *.png
+*.tif
+raster_class_viz/data/

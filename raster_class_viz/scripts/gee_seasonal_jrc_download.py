@@ -50,7 +50,7 @@ def _get_collection(collection_name, date_start, bounds, season=True):
 # @retry(stop=stop_after_attempt(2), wait=wait_fixed(2))
 # @timeout(15)
 def download_seasonal_jrc_imgs(flood_date: str, bounds: ee.Geometry,
-                               collection_name: str = "JRC/GSW1_3/MonthlyHistory",
+                               collection_name: str = "JRC/GSW1_4/MonthlyHistory",
                                dt_set: str = '', img_name: str = '',
                                tile=None, monthly=False):
     '''
@@ -60,24 +60,27 @@ def download_seasonal_jrc_imgs(flood_date: str, bounds: ee.Geometry,
         'world_floods': 'JRC_WORLDFLOODS',
         'sen1_floods11': 'JRC_SEN1FLOODS11',
         'usgs': 'JRC_usgs',
-        'unosat': 'JRC_unosat'
+        'unosat': 'JRC_unosat',
+        'HLS' : 'GSWE_HLS'
     }
     fldr = dt_set_fldr.get(dt_set)
     if dt_set == 'unosat':
         aoi = list(bounds.bounds.values)[0]
         bounds = ee.Geometry.BBox(aoi[0], aoi[1], aoi[2], aoi[3])
+    elif dt_set == 'HLS':
+        bounds = ee.Geometry.BBox(bounds[0], bounds[1], bounds[2], bounds[3])
     # flood_date is in YYYY-MM-DD format
     flood_yr = flood_date[:4]
     flood_month = flood_date[5:7]
-    if int(flood_yr) > 2020:
-        flood_yr = '2020'
+    if int(flood_yr) > 2021:
+        flood_yr = '2021'
     yr_2_prev = str(int(flood_yr) - 2)
     yr_1_prev = str(int(flood_yr) - 1)
 
     # yearly permanent
-    img_2_prev_yr, n_images_col_2 = _get_collection(collection_name='JRC/GSW1_3/YearlyHistory',
+    img_2_prev_yr, n_images_col_2 = _get_collection(collection_name='JRC/GSW1_4/YearlyHistory',
                                                     date_start=yr_2_prev, bounds=bounds, season=False)
-    img_1_prev_yr, n_images_col_1 = _get_collection(collection_name='JRC/GSW1_3/YearlyHistory',
+    img_1_prev_yr, n_images_col_1 = _get_collection(collection_name='JRC/GSW1_4/YearlyHistory',
                                                     date_start=yr_1_prev, bounds=bounds, season=False)
     # (no data, not water, seasonal, permanent)
     jrc_2_prev_yr = img_2_prev_yr.remap([0, 1, 2, 3], [3, 0, 0, 1], 5)
