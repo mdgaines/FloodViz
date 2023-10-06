@@ -4,3 +4,6 @@
 
 ---
 
+To generate raster classification images, run:
+
+`python floodviz.py -s flood_freq`
