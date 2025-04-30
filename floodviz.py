@@ -12,8 +12,12 @@ import os
 # import numpy as np
 from pathlib import Path
 
+import matplotlib.image as img 
+import matplotlib.pyplot as plt
+
 from cli import parse_viz_script
 from raster_class_viz.scripts.viz_floods import raster_class_plot
+from emdat_dfo_viz.scripts.emdat_dfo import plot_flood_freq
 
 
 
@@ -34,6 +38,20 @@ def main():
 
         # except:
         raster_class_plot(input_dir)
+    elif script == 'flood_freq':
+        # try:
+        img_path = plot_flood_freq()
+        
+        # reading png image file 
+        im = img.imread(img_path) 
+        
+        # show image 
+        plt.imshow(im)
+        plt.axis('off')
+        plt.show()
+        # except:
+    
+    return    
 
 
 if __name__ == '__main__':

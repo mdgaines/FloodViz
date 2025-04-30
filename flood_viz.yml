@@ -1,0 +1,47 @@
+# A conda environment for visualizing flood classification.
+#
+# Usage:
+#   $ conda env create --file=flood_viz.yml
+#   $ source activate flood_viz
+
+#   if needing to add another package and update the env use the below:
+#   $ conda env update --file flood_viz.yml 
+
+name: flood_viz
+
+channels:
+  - conda-forge
+dependencies:
+  - python =3.11
+  - pip
+  - numpy
+  - pandas
+  - notebook
+  - glob2
+  - matplotlib
+  - seaborn
+  - python-dotenv
+  - tenacity
+
+  # spatial packages
+  - gdal
+  - rasterio
+  - geopandas
+  - scikit-image
+  - earthpy
+  - rasterstats
+  - descartes
+  - cartopy
+  - xarray
+  - netcdf4
+  - h5netcdf
+  - rioxarray
+  - earthengine-api
+  - geemap
+
+  - pip:
+    - wget
+    - geetools
+    - geocube
+    - matplotlib_scalebar
+

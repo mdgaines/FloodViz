@@ -3,3 +3,4 @@
 *.png
 *.tif
 raster_class_viz/data/
+*__pycache__*

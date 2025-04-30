@@ -8,6 +8,7 @@ from glob import glob
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap, BoundaryNorm
+from matplotlib_scalebar.scalebar import ScaleBar
 import rioxarray as rxr
 import rasterio as rio
 from rasterio.crs import CRS
@@ -15,12 +16,26 @@ from osgeo import gdal
 from shapely.geometry import box
 import geopandas as gpd
 
-
 import earthpy.plot as ep
+import geemap
+from geemap import cartoee
+import cartopy
+import cartopy.mpl.geoaxes
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from shapely.geometry.point import Point
+from shapely.geometry.polygon import Polygon
+
 
 from raster_class_viz.scripts.gee_seasonal_jrc_download import download_seasonal_jrc_imgs
 from raster_class_viz.scripts.geetasks import check_on_tasks_in_queue, wait_for_local_sync
 from raster_class_viz.scripts.calculate_classes import calc_classes
+# from gee_seasonal_jrc_download import download_seasonal_jrc_imgs
+# from geetasks import check_on_tasks_in_queue, wait_for_local_sync
+# from calculate_classes import calc_classes
+
+
 # from cli import parse_viz_floods
 
 def getFeatures(gdf):
@@ -50,6 +65,60 @@ def reproj(fld_rstr, gswe_path):
 
     return out_path
 
+def get_scalebar_dist(rxr_crs:int):
+    POINTS = gpd.GeoSeries(
+        [Point(-73.5, 40.5), Point(-74.5, 40.5)], crs=4326
+    )  # Geographic WGS 84 - degrees
+
+    POINTS = POINTS.to_crs(rxr_crs)  # Projected WGS 84 - meters
+
+    dist_meters = POINTS[0].distance(POINTS[1])
+    return dist_meters
+
+
+def get_bounds(class_src_arr):
+
+    crs_wgs84 = CRS.from_string('EPSG:4326')
+    arr_wgs84 = class_src_arr.rio.reproject(crs_wgs84, nodata=255)
+
+    lonmin, latmin, lonmax, latmax = arr_wgs84.rio.bounds()
+    del arr_wgs84
+
+    return lonmin, latmin, lonmax, latmax 
+
+
+# def plot_location(class_src_arr):
+#     """ use cartopy to plot the region (defined as a namedtuple object)
+#     """
+#     lonmin, latmin, lonmax, latmax = get_bounds(class_src_arr)
+
+#     ax = plt.axes(projection=ccrs.PlateCarree())
+#     ax.set_extent([lonmin-12, lonmax+12, latmin-12, latmax+12])
+
+#     # Put a background image on for nice sea rendering.
+#     ax.stock_img()
+#     # SOURCE = 'Natural Earth'
+#     # LICENSE = 'public domain'
+
+#     # ax.add_feature(cfeature.LAND)
+#     ax.add_feature(cfeature.COASTLINE)
+#     ax.add_feature(cfeature.BORDERS, linestyle=':')
+
+#     # Create a Rectangle patch
+#     # create a sample polygon, `pgon`
+#     pgon = Polygon(((lonmin, latmin),
+#             (lonmin, latmax),
+#             (lonmax, latmax),
+#             (lonmax, latmin),
+#             (lonmin, latmin)))
+
+#     # Add the patch to the Axes
+#     ax.add_geometries([pgon], crs=ccrs.PlateCarree(), facecolor='lack', edgecolor='black', alpha=0.5)
+
+#     plt.show()
+
+#     return fig, ax
+
 
 
 def plot_flood_permanent_seasonal(class_path:Path):
@@ -63,10 +132,99 @@ def plot_flood_permanent_seasonal(class_path:Path):
 
     # fld_src_arr = rxr.open_rasterio(rstr_path, masked=True).squeeze()
     class_src_arr = rxr.open_rasterio(class_path, masked=True).squeeze()
+    rxr_crs = class_src_arr.rio.crs.to_epsg()
+    dist_meters = get_scalebar_dist(rxr_crs)
+    lonmin, latmin, lonmax, latmax = get_bounds(class_src_arr)
+
 
     # Plot data using nicer colors
     colors = ['#abafb0', '#002b9c', '#7494e4', '#47eeff', 'black']
     class_bins = [-0.5, 0.5, 1.5, 2.5, 3.5, 256]
+    cmap = ListedColormap(colors)
+    norm = BoundaryNorm(class_bins, 
+                        len(colors))
+
+    # Plot newly classified and masked raster
+    f, ax = plt.subplots(figsize=(11, 7.55))
+    im = class_src_arr.plot.imshow(cmap=cmap,
+                            norm=norm,
+                            add_colorbar=False)
+    
+    # Add scalebar
+    ax.add_artist(ScaleBar(dx=1, location='lower right', 
+                           box_alpha=0, border_pad = 0, 
+                           bbox_to_anchor=(1.25, 0),
+                           bbox_transform=ax.transAxes))
+    
+    # Add N arrow
+    x, y, arrow_length = 1.35, 0.12, 0.1
+    ax.annotate('N', xy=(x, y), xytext=(x, y-arrow_length),
+                arrowprops=dict(arrowstyle='fancy', facecolor='black'),# width=5, headwidth=15),
+                ha='center', va='center', fontsize=26,
+                xycoords=ax.transAxes)
+    
+    # Add legend using earthpy
+    ep.draw_legend(im,
+                titles=class_labels[0:5],
+                classes=[0,1,2,3,4],
+                bbox=(1.05, 0.4))
+    
+    ax.set(title="Classified Floodwater")
+
+    axins = inset_axes(ax, width=2.5, height=2.5,  
+                           bbox_to_anchor=(1.4, 1),
+                           bbox_transform=ax.transAxes,
+                    axes_class=cartopy.mpl.geoaxes.GeoAxes, 
+                    axes_kwargs=dict(map_projection=cartopy.crs.PlateCarree()))
+    
+    axins.set_extent([lonmin-12, lonmax+12, latmin-12, latmax+12])
+
+    # Put a background image on for nice sea rendering.
+    axins.stock_img()
+    # SOURCE = 'Natural Earth'
+    # LICENSE = 'public domain'
+
+    # axins.add_feature(cfeature.LAND)
+    axins.add_feature(cfeature.COASTLINE)
+    axins.add_feature(cfeature.BORDERS, linestyle=':')
+
+    # Create a Rectangle patch
+    # create a sample polygon, `pgon`
+    pgon = Polygon(((lonmin, latmin),
+            (lonmin, latmax),
+            (lonmax, latmax),
+            (lonmax, latmin),
+            (lonmin, latmin)))
+
+    # Add the patch to the Axes
+    axins.add_geometries([pgon], crs=ccrs.PlateCarree(), facecolor='black', edgecolor='black', alpha=0.5)
+
+    axins.add_feature(cartopy.feature.COASTLINE)
+
+    # ax.set_axis_off()
+    plt.tight_layout()
+    # plt.savefig(img_path, dpi=300, format='png', )
+    # plt.close(f)
+    plt.show()
+
+    return
+
+
+def plot_flood_permanent(class_path:Path):
+
+    img_path = f'./raster_class_viz/imgs/{os.path.basename(class_path)[:-4]}.png'
+    if os.path.exists(img_path):
+        print(f'{os.path.basename(img_path)} exists.')
+        # return
+
+    class_labels = ['Non-water', 'Permanent + Seasonal Water', 'Flood Water', 'No Data']
+
+    # fld_src_arr = rxr.open_rasterio(rstr_path, masked=True).squeeze()
+    class_src_arr = rxr.open_rasterio(class_path, masked=True).squeeze()
+
+    # Plot data using nicer colors
+    colors = ['#abafb0', '#002b9c', '#47eeff', 'black']
+    class_bins = [-0.5, 0.5, 2.5, 3.5, 256]
     cmap = ListedColormap(colors)
     norm = BoundaryNorm(class_bins, 
                         len(colors))
@@ -79,19 +237,15 @@ def plot_flood_permanent_seasonal(class_path:Path):
     
     # Add legend using earthpy
     ep.draw_legend(im,
-                titles=class_labels[0:4])
+                titles=class_labels[0:4],
+                classes=[0,1,2,3])
     
     ax.set(title="Classified Floodwater")
     ax.set_axis_off()
     plt.tight_layout()
-    plt.savefig(img_path, dpi=300, format='png', )
-    plt.close(f)
-    # plt.show()
-
-    return
-
-
-def plot_flood_permanent(fl_path:Path):
+    # plt.savefig(img_path, dpi=300, format='png', )
+    # plt.close(f)
+    plt.show()
 
     return
 
@@ -118,8 +272,8 @@ def raster_class_plot(input_dir:Path):
 
     make_dirs()
 
-    # flood_fl_lst = glob('G:/.shortcut-targets-by-id/1-Owv0cvb_maGj6CjU3lJDrnx_wofctRz/flood_examples_mollie/*/*.tif')
-    # Q:/.shortcut-targets-by-id/1vBEdUNq5Muhbh7WU8S4us5iJy0ZGpw1B/selected_flood_results_vini
+    # flood_fl_lst = glob('Q:/.shortcut-targets-by-id/1-Owv0cvb_maGj6CjU3lJDrnx_wofctRz/flood_examples_mollie/*/*.tif')
+    # input_dir = 'Q:/.shortcut-targets-by-id/1vBEdUNq5Muhbh7WU8S4us5iJy0ZGpw1B/selected_flood_results_vini'
     flood_fl_lst = glob(f'{input_dir}/**/*.json', recursive=True)
 
     flood_rstr_lst = glob(f'{input_dir}/**/*.tif', recursive=True)
@@ -158,8 +312,8 @@ def raster_class_plot(input_dir:Path):
         calc_classes('HLS', img_name, './raster_class_viz/data/CLASS/', profile, rstr_path, gswe_path)
 
         # if seasonal:
-        plot_flood_permanent_seasonal(Path(f'./raster_class_viz/data/CLASS/HLS_{img_name}_CLASS.tif'))
+        plot_flood_permanent_seasonal(class_path=Path(f'./raster_class_viz/data/CLASS/HLS_{img_name}_CLASS.tif'))
 
-        plot_flood_permanent(Path(fl))
+        plot_flood_permanent(Path(f'./raster_class_viz/data/CLASS/HLS_{img_name}_CLASS.tif'))
 
     return
