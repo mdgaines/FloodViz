@@ -77,6 +77,8 @@ def calc_classes(dt_set: str, s2_name: str, out_dir: str, profile, gt_path=None,
         nodata=255,
         compress='lzw',
         interleave='band',
+        blockxsize= 256, 
+        blockysize= 256,
         tiled=True,
     )
     with rio.open(out_path, 'w', **profile) as dst:

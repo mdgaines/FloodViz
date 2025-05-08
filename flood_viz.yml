@@ -38,6 +38,7 @@ dependencies:
   - rioxarray
   - earthengine-api
   - geemap
+  - contextily
 
   - pip:
     - wget

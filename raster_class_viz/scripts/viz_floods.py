@@ -26,7 +26,7 @@ import cartopy.feature as cfeature
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from shapely.geometry.point import Point
 from shapely.geometry.polygon import Polygon
-
+import contextily as cx
 
 from raster_class_viz.scripts.gee_seasonal_jrc_download import download_seasonal_jrc_imgs
 from raster_class_viz.scripts.geetasks import check_on_tasks_in_queue, wait_for_local_sync
@@ -132,23 +132,38 @@ def plot_flood_permanent_seasonal(class_path:Path):
 
     # fld_src_arr = rxr.open_rasterio(rstr_path, masked=True).squeeze()
     class_src_arr = rxr.open_rasterio(class_path, masked=True).squeeze()
+    class_arr_wm = class_src_arr.rio.reproject(CRS.from_string('EPSG:3857'), nodata=255) # reproject to Web Mercator for basemap
     rxr_crs = class_src_arr.rio.crs.to_epsg()
     dist_meters = get_scalebar_dist(rxr_crs)
-    lonmin, latmin, lonmax, latmax = get_bounds(class_src_arr)
+    lonmin, latmin, lonmax, latmax = get_bounds(class_src_arr) # for inset map
 
 
     # Plot data using nicer colors
-    colors = ['#abafb0', '#002b9c', '#7494e4', '#47eeff', 'black']
+    colors = ['#FFabafb0', '#002b9c', '#7494e4', '#47eeff', 'black']
     class_bins = [-0.5, 0.5, 1.5, 2.5, 3.5, 256]
     cmap = ListedColormap(colors)
     norm = BoundaryNorm(class_bins, 
                         len(colors))
+    rgba_lin = cmap(np.arange(cmap.N))
+    rgba_lin[:,-1] = [0, 1, 1, 1, 1]
+    cmap_alpha = ListedColormap(rgba_lin)
 
     # Plot newly classified and masked raster
     f, ax = plt.subplots(figsize=(11, 7.55))
-    im = class_src_arr.plot.imshow(cmap=cmap,
+    im = class_src_arr.plot.imshow(cmap=cmap_alpha,
                             norm=norm,
-                            add_colorbar=False)
+                            add_colorbar=False,
+                            ax=ax)
+    
+    # add basemap
+    cx.add_basemap(ax, crs=class_src_arr.rio.crs.to_string(), source=cx.providers.NASAGIBS.ASTER_GDEM_Greyscale_Shaded_Relief, alpha=0.5)
+    cx.add_basemap(ax, crs=class_src_arr.rio.crs.to_string(), source=cx.providers.CartoDB.PositronNoLabels, alpha=0.5)
+    cx.add_basemap(ax, crs=class_src_arr.rio.crs.to_string(), source=cx.providers.CartoDB.PositronOnlyLabels, zoom=10)
+    
+    im = class_src_arr.plot.imshow(cmap=cmap_alpha,
+                            norm=norm,
+                            add_colorbar=False,
+                            ax=ax)
     
     # Add scalebar
     ax.add_artist(ScaleBar(dx=1, location='lower right', 
@@ -250,6 +265,15 @@ def plot_flood_permanent(class_path:Path):
     return
 
 
+def move_gsw_tif(src:str, dst:str):
+    '''
+        Move GSW .tif data from base drive GSWE_HLS folder to FloodViz/raster_class_viz/data/GSWE_HLS directory
+    '''
+    src_path = Path(src)
+    dst_path = Path(dst)
+    os.rename(src_path, dst_path)
+    return
+
 def make_dirs():
     if not os.path.exists('./raster_class_viz/data/GSWE_HLS'):
         os.makedirs('./raster_class_viz/data/GSWE_HLS')
@@ -269,18 +293,25 @@ def raster_class_plot(input_dir:Path):
 
     # input_dir = args.input_dir
     # seasonal = args.seasonal
+    # gdrive = args.gdrive
+    gdrive = 'Q:/My Drive' # basepath for local GDrive
 
     make_dirs()
 
     # flood_fl_lst = glob('Q:/.shortcut-targets-by-id/1-Owv0cvb_maGj6CjU3lJDrnx_wofctRz/flood_examples_mollie/*/*.tif')
-    # input_dir = 'Q:/.shortcut-targets-by-id/1vBEdUNq5Muhbh7WU8S4us5iJy0ZGpw1B/selected_flood_results_vini'
-    flood_fl_lst = glob(f'{input_dir}/**/*.json', recursive=True)
+    input_dir = 'Q:/.shortcut-targets-by-id/1iXFDnM6JEC6f0gm4-HjYgreTPUJc6Rat/selected_flood_results_vini_backup'
+    # flood_fl_lst = glob(f'{input_dir}/**/*.json', recursive=True)
 
     flood_rstr_lst = glob(f'{input_dir}/**/*.tif', recursive=True)
+    flood_fl_lst = [glob(f'{os.path.dirname(os.path.dirname(i))}/*.json') for i in flood_rstr_lst]
 
     for i in range(len(flood_fl_lst)):
-        fl = flood_fl_lst[i]
         rstr_path = flood_rstr_lst[i]
+        try:
+            fl = flood_fl_lst[i][0]
+        except IndexError:
+            print(f'missing corresponding .json for {os.path.basename(os.path.dirname(os.path.dirname(rstr_path)))}')
+            continue
 
         with open(fl) as json_data:
             data = json.load(json_data)
@@ -301,7 +332,8 @@ def raster_class_plot(input_dir:Path):
 
                 task, gswe_path, date_info = download_seasonal_jrc_imgs(flood_date=fld_date, bounds=bounds, dt_set='HLS', img_name=img_name)#, tile=tile)
                 check_on_tasks_in_queue([task])
-                wait_for_local_sync(f'./raster_class_viz/data{gswe_path}')
+                wait_for_local_sync(f'{gdrive}/{gswe_path}.tif')
+                move_gsw_tif(src=f'{gdrive}/{gswe_path}.tif', dst=f'./raster_class_viz/data/{gswe_path}.tif')
                 gswe_path = glob(f'./raster_class_viz/data/GSWE_HLS/{img_name}_*_JRC.tif')[0]
 
             gswe_path = reproj(fld_rstr=fld_src_arr, gswe_path=gswe_path)
