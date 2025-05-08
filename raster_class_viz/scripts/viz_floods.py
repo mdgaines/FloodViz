@@ -168,11 +168,12 @@ def plot_flood_permanent_seasonal(class_path:Path):
     # Add scalebar
     ax.add_artist(ScaleBar(dx=1, location='lower right', 
                            box_alpha=0, border_pad = 0, 
-                           bbox_to_anchor=(1.25, 0),
+                           bbox_to_anchor=(1.3, 0.07),
                            bbox_transform=ax.transAxes))
-    
+    ax.set_aspect(1)
+
     # Add N arrow
-    x, y, arrow_length = 1.35, 0.12, 0.1
+    x, y, arrow_length = 1.4, 0.2, 0.1
     ax.annotate('N', xy=(x, y), xytext=(x, y-arrow_length),
                 arrowprops=dict(arrowstyle='fancy', facecolor='black'),# width=5, headwidth=15),
                 ha='center', va='center', fontsize=26,
@@ -182,15 +183,15 @@ def plot_flood_permanent_seasonal(class_path:Path):
     ep.draw_legend(im,
                 titles=class_labels[0:5],
                 classes=[0,1,2,3,4],
-                bbox=(1.05, 0.4))
+                bbox=(1.08, 0.5))
     
     ax.set(title="Classified Floodwater")
 
     axins = inset_axes(ax, width=2.5, height=2.5,  
-                           bbox_to_anchor=(1.4, 1),
+                           bbox_to_anchor=(1.5, 1),
                            bbox_transform=ax.transAxes,
                     axes_class=cartopy.mpl.geoaxes.GeoAxes, 
-                    axes_kwargs=dict(map_projection=cartopy.crs.PlateCarree()))
+                    axes_kwargs=dict(projection=cartopy.crs.PlateCarree()))
     
     axins.set_extent([lonmin-12, lonmax+12, latmin-12, latmax+12])
 
@@ -216,8 +217,8 @@ def plot_flood_permanent_seasonal(class_path:Path):
 
     axins.add_feature(cartopy.feature.COASTLINE)
 
-    # ax.set_axis_off()
-    plt.tight_layout()
+    ax.set_axis_off()
+    # plt.tight_layout()
     # plt.savefig(img_path, dpi=300, format='png', )
     # plt.close(f)
     plt.show()
