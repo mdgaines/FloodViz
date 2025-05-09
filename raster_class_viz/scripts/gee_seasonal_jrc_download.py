@@ -61,13 +61,14 @@ def download_seasonal_jrc_imgs(flood_date: str, bounds: ee.Geometry,
         'sen1_floods11': 'JRC_SEN1FLOODS11',
         'usgs': 'JRC_usgs',
         'unosat': 'JRC_unosat',
-        'HLS' : 'GSWE_HLS'
+        'HLS' : 'GSWE_HLS',
+        'S2' : 'GSW_S2'
     }
     fldr = dt_set_fldr.get(dt_set)
     if dt_set == 'unosat':
         aoi = list(bounds.bounds.values)[0]
         bounds = ee.Geometry.BBox(aoi[0], aoi[1], aoi[2], aoi[3])
-    elif dt_set == 'HLS':
+    elif (dt_set == 'HLS') or (dt_set == 'S2'):
         bounds = ee.Geometry.BBox(bounds[0], bounds[1], bounds[2], bounds[3])
     # flood_date is in YYYY-MM-DD format
     flood_yr = flood_date[:4]
@@ -161,7 +162,7 @@ def download_seasonal_jrc_imgs(flood_date: str, bounds: ee.Geometry,
         if dt_set == 'unosat':
             jrc_name = f'{img_name}_{date_info}_{tile}_Seasonal_JRC'
         else:
-            jrc_name = f'{img_name}_{date_info}_Seasonal_JRC'
+            jrc_name = f'{img_name}_{date_info}_Seasonal_GSW'
         print('before  task = ee.batch.Export.image.toDrive( jrc_seasonal_perm,')
 
         task = ee.batch.Export.image.toDrive(

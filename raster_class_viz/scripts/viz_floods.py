@@ -15,6 +15,7 @@ from rasterio.crs import CRS
 from osgeo import gdal
 from shapely.geometry import box
 import geopandas as gpd
+import datetime
 
 import earthpy.plot as ep
 import geemap
@@ -29,41 +30,16 @@ from shapely.geometry.polygon import Polygon
 import contextily as cx
 
 from raster_class_viz.scripts.gee_seasonal_jrc_download import download_seasonal_jrc_imgs
+from raster_class_viz.scripts.gee_sentinel2_download import download_s2_imgs
 from raster_class_viz.scripts.geetasks import check_on_tasks_in_queue, wait_for_local_sync
 from raster_class_viz.scripts.calculate_classes import calc_classes
+from raster_class_viz.scripts.rstr_tools import gdal_merge_compressed, reproj, geFeatures
 # from gee_seasonal_jrc_download import download_seasonal_jrc_imgs
 # from geetasks import check_on_tasks_in_queue, wait_for_local_sync
 # from calculate_classes import calc_classes
 
 
 # from cli import parse_viz_floods
-
-def getFeatures(gdf):
-    """Function to parse features from GeoDataFrame in such a manner that rasterio wants them"""
-    import json
-    return [json.loads(gdf.to_json())['features'][0]['geometry']]
-
-
-def reproj(fld_rstr, gswe_path):
-
-    img_name = os.path.basename(gswe_path)[:-4] + '_reproj.tif'
-    out_path = f'./raster_class_viz/data/GSWE_HLS/reprojected/{img_name}'
-    
-    fld_bounds = fld_rstr.rio.bounds()
-    destCRS = CRS.from_string(f'EPSG:{fld_rstr.rio.crs.to_epsg(60)}')
-
-    # bbox = box(fld_bounds[0], fld_bounds[1], fld_bounds[2], fld_bounds[3])
-    # geo = gpd.GeoDataFrame({'geometry': bbox}, index=[0], crs=destCRS)
-    # coords = getFeatures(geo)
-
-    gswe_reproj = gdal.Warp(out_path, gswe_path, dstSRS=destCRS, 
-                            xRes=30, yRes=30, 
-                            outputBounds=fld_bounds, format='GTiff',
-                            outputType=gdal.GDT_UInt16)
-    
-    gswe_reproj = None
-
-    return out_path
 
 def get_scalebar_dist(rxr_crs:int):
     POINTS = gpd.GeoSeries(
@@ -87,84 +63,16 @@ def get_bounds(class_src_arr):
     return lonmin, latmin, lonmax, latmax 
 
 
-# def plot_location(class_src_arr):
-#     """ use cartopy to plot the region (defined as a namedtuple object)
-#     """
-#     lonmin, latmin, lonmax, latmax = get_bounds(class_src_arr)
+def add_basemap(class_src_arr, ax):
 
-#     ax = plt.axes(projection=ccrs.PlateCarree())
-#     ax.set_extent([lonmin-12, lonmax+12, latmin-12, latmax+12])
-
-#     # Put a background image on for nice sea rendering.
-#     ax.stock_img()
-#     # SOURCE = 'Natural Earth'
-#     # LICENSE = 'public domain'
-
-#     # ax.add_feature(cfeature.LAND)
-#     ax.add_feature(cfeature.COASTLINE)
-#     ax.add_feature(cfeature.BORDERS, linestyle=':')
-
-#     # Create a Rectangle patch
-#     # create a sample polygon, `pgon`
-#     pgon = Polygon(((lonmin, latmin),
-#             (lonmin, latmax),
-#             (lonmax, latmax),
-#             (lonmax, latmin),
-#             (lonmin, latmin)))
-
-#     # Add the patch to the Axes
-#     ax.add_geometries([pgon], crs=ccrs.PlateCarree(), facecolor='lack', edgecolor='black', alpha=0.5)
-
-#     plt.show()
-
-#     return fig, ax
-
-
-
-def plot_flood_permanent_seasonal(class_path:Path):
-
-    img_path = f'./raster_class_viz/imgs/{os.path.basename(class_path)[:-4]}.png'
-    if os.path.exists(img_path):
-        print(f'{os.path.basename(img_path)} exists.')
-        # return
-
-    class_labels = ['Non-water', 'Permanent Water', 'Seasonal Water', 'Flood Water', 'No Data']
-
-    # fld_src_arr = rxr.open_rasterio(rstr_path, masked=True).squeeze()
-    class_src_arr = rxr.open_rasterio(class_path, masked=True).squeeze()
-    class_arr_wm = class_src_arr.rio.reproject(CRS.from_string('EPSG:3857'), nodata=255) # reproject to Web Mercator for basemap
-    rxr_crs = class_src_arr.rio.crs.to_epsg()
-    dist_meters = get_scalebar_dist(rxr_crs)
-    lonmin, latmin, lonmax, latmax = get_bounds(class_src_arr) # for inset map
-
-
-    # Plot data using nicer colors
-    colors = ['#FFabafb0', '#002b9c', '#7494e4', '#47eeff', 'black']
-    class_bins = [-0.5, 0.5, 1.5, 2.5, 3.5, 256]
-    cmap = ListedColormap(colors)
-    norm = BoundaryNorm(class_bins, 
-                        len(colors))
-    rgba_lin = cmap(np.arange(cmap.N))
-    rgba_lin[:,-1] = [0, 1, 1, 1, 1]
-    cmap_alpha = ListedColormap(rgba_lin)
-
-    # Plot newly classified and masked raster
-    f, ax = plt.subplots(figsize=(11, 7.55))
-    im = class_src_arr.plot.imshow(cmap=cmap_alpha,
-                            norm=norm,
-                            add_colorbar=False,
-                            ax=ax)
-    
-    # add basemap
-    cx.add_basemap(ax, crs=class_src_arr.rio.crs.to_string(), source=cx.providers.NASAGIBS.ASTER_GDEM_Greyscale_Shaded_Relief, alpha=0.5)
-    cx.add_basemap(ax, crs=class_src_arr.rio.crs.to_string(), source=cx.providers.CartoDB.PositronNoLabels, alpha=0.5)
+    cx.add_basemap(ax, crs=class_src_arr.rio.crs.to_string(), source=cx.providers.NASAGIBS.ASTER_GDEM_Greyscale_Shaded_Relief, alpha=1)
+    cx.add_basemap(ax, crs=class_src_arr.rio.crs.to_string(), source=cx.providers.CartoDB.PositronNoLabels, alpha=0)
     cx.add_basemap(ax, crs=class_src_arr.rio.crs.to_string(), source=cx.providers.CartoDB.PositronOnlyLabels, zoom=10)
-    
-    im = class_src_arr.plot.imshow(cmap=cmap_alpha,
-                            norm=norm,
-                            add_colorbar=False,
-                            ax=ax)
-    
+
+    return ax
+
+
+def add_scalebar_Narrow(ax):
     # Add scalebar
     ax.add_artist(ScaleBar(dx=1, location='lower right', 
                            box_alpha=0, border_pad = 0, 
@@ -178,14 +86,13 @@ def plot_flood_permanent_seasonal(class_path:Path):
                 arrowprops=dict(arrowstyle='fancy', facecolor='black'),# width=5, headwidth=15),
                 ha='center', va='center', fontsize=26,
                 xycoords=ax.transAxes)
-    
-    # Add legend using earthpy
-    ep.draw_legend(im,
-                titles=class_labels[0:5],
-                classes=[0,1,2,3,4],
-                bbox=(1.08, 0.5))
-    
-    ax.set(title="Classified Floodwater")
+    return ax
+
+
+def add_location_inset(class_src_arr, ax):
+    """ use cartopy to plot the region (defined as a namedtuple object)
+    """
+    lonmin, latmin, lonmax, latmax = get_bounds(class_src_arr)
 
     axins = inset_axes(ax, width=2.5, height=2.5,  
                            bbox_to_anchor=(1.5, 1),
@@ -217,8 +124,103 @@ def plot_flood_permanent_seasonal(class_path:Path):
 
     axins.add_feature(cartopy.feature.COASTLINE)
 
-    ax.set_axis_off()
-    # plt.tight_layout()
+    return ax
+
+
+
+def plot_flood_permanent_seasonal(class_path:Path, false_color:str='', true_color:str=''):
+
+    img_path = f'./raster_class_viz/imgs/{os.path.basename(class_path)[:-4]}.png'
+    if os.path.exists(img_path):
+        print(f'{os.path.basename(img_path)} exists.')
+        # return
+
+    class_labels = ['Non-water', 'Permanent Water', 'Seasonal Water', 'Flood Water', 'No Data']
+
+    # fld_src_arr = rxr.open_rasterio(rstr_path, masked=True).squeeze()
+    class_src_arr = rxr.open_rasterio(class_path, masked=True).squeeze()
+    class_arr_wm = class_src_arr.rio.reproject(CRS.from_string('EPSG:3857'), nodata=255) # reproject to Web Mercator for basemap
+    rxr_crs = class_src_arr.rio.crs.to_epsg()
+    dist_meters = get_scalebar_dist(rxr_crs)
+    # lonmin, latmin, lonmax, latmax = get_bounds(class_src_arr) # for inset map
+
+
+    # Plot data using nicer colors
+    colors = ['#abafb0', '#002b9c', '#7494e4', '#47eeff', 'black']
+    class_bins = [-0.5, 0.5, 1.5, 2.5, 3.5, 256]
+    cmap = ListedColormap(colors)
+    norm = BoundaryNorm(class_bins, 
+                        len(colors))
+    rgba_lin = cmap(np.arange(cmap.N))
+    rgba_lin[:,-1] = [0, 1, 1, 1, 1]
+    cmap_alpha = ListedColormap(rgba_lin)
+
+    # Plot newly classified and masked raster
+    if (false_color and true_color):                # both additional images
+        img_src_arr = rxr.open_rasterio(true_color, masked=True).squeeze()
+        f, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(19.5, 13), constrained_layout=True)
+        ep.plot_rgb(img_src_arr.values,
+            rgb=[2, 1, 0],
+            ax=ax1,
+            title="True Color",
+            stretch=True,
+            str_clip=5) 
+        ep.plot_rgb(img_src_arr.values,
+            rgb=[3, 2, 1],
+            ax=ax2,
+            title="False Color",
+            stretch=True,
+            str_clip=5) 
+    elif false_color:                               # false color additional images
+        img_src_arr = rxr.open_rasterio(false_color, masked=True).squeeze()
+        f, (ax2, ax3) = plt.subplots(1, 2, figsize=(14, 13), constrained_layout=True)
+        ep.plot_rgb(img_src_arr.values,
+            rgb=[3, 2, 1],
+            ax=ax2,
+            title="False Color",
+            stretch=True,
+            str_clip=5) 
+    elif true_color:                                # true color additional images
+        img_src_arr = rxr.open_rasterio(true_color, masked=True).squeeze()
+        f, (ax1, ax3) = plt.subplots(1, 2, figsize=(14, 13), constrained_layout=True)
+        ep.plot_rgb(img_src_arr.values,
+            rgb=[2, 1, 0],
+            ax=ax1,
+            title="True Color",
+            stretch=True,
+            str_clip=5) 
+    elif not (false_color and true_color):          # no additional images
+        f, ax3 = plt.subplots(figsize=(11, 7.55))
+
+    im = class_src_arr.plot.imshow(cmap=cmap_alpha,
+                            norm=norm,
+                            add_colorbar=False,
+                            ax=ax3)
+    
+    # add basemap
+    ax3 = add_basemap(class_src_arr, ax3)
+    
+    im = class_src_arr.plot.imshow(cmap=cmap_alpha,
+                            norm=norm,
+                            add_colorbar=False,
+                            ax=ax3)
+    
+    # add scalebar and North arrow
+    ax3 = add_scalebar_Narrow(ax3)
+    
+    # Add legend using earthpy
+    ep.draw_legend(im,
+                titles=class_labels[0:5],
+                classes=[0,1,2,3,4],
+                bbox=(1.08, 0.5))
+    
+    # add title
+    ax3.set(title="Classified Floodwater")
+
+    # Add inset
+    ax3 = add_location_inset(class_src_arr, ax3)
+
+    ax3.set_axis_off()
     # plt.savefig(img_path, dpi=300, format='png', )
     # plt.close(f)
     plt.show()
@@ -286,7 +288,47 @@ def make_dirs():
         os.makedirs('./raster_class_viz/imgs')
 
     return
-    
+
+
+def get_gee_img_reproj(img_name, rstr_path, fld_date, gdrive, dataset):
+    '''
+        Download and reproject images from GEE (e.g., GSW or S2 imagery)
+    '''
+
+    try:
+        img_path = glob(f'./raster_class_viz/data/{dataset}/reprojected/{img_name}_*_{dataset}_reproj.tif')[0]
+    except IndexError:
+        try:
+            fld_src_arr = rxr.open_rasterio(rstr_path, masked=True).squeeze()
+            img_path = glob(f'./raster_class_viz/data/{dataset}/{img_name}_*_{dataset}.tif')[0]
+        except IndexError:
+        # if not os.path.exists(img_path):
+            crs_wgs84 = CRS.from_string('EPSG:4326')
+            fld_reproj = fld_src_arr.rio.reproject(crs_wgs84, nodata=255)
+            bounds = fld_reproj.rio.bounds()
+
+            if dataset == 'GSW':
+                task, img_path, date_info = download_seasonal_jrc_imgs(flood_date=fld_date, bounds=bounds, dt_set=dataset, img_name=img_name)#, tile=tile)
+            elif dataset == 'S2':
+                tile = rstr_path.split('.')[3][1:] # for when we have the tile name in the image path. will need to be updated
+                date_end = (datetime.datetime.strptime(fld_date, "%Y-%m-%d") + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+                task, n_imgs, img_path_lst = download_s2_imgs(date_start=fld_date, date_end=date_end, bounds=bounds, dt_set=dataset, img_name=img_name, hls_tiles=[tile])
+                img_path = 'S2/' + img_path_lst[0]
+
+            check_on_tasks_in_queue([task])
+            wait_for_local_sync(f'{gdrive}/{img_path}.tif')
+
+            dwnld_path_lst = glob(f'{gdrive}/{img_path}*.tif')
+            if len(dwnld_path_lst) > 1:
+                gdal_merge_compressed(out_path, in_path)
+
+            move_gsw_tif(src=f'{gdrive}/{img_path}.tif', dst=f'./raster_class_viz/data/{img_path}.tif')
+            img_path = glob(f'./raster_class_viz/data/{dataset}/{img_name}_*_{dataset}.tif')[0]
+        
+        img_path = reproj(fld_rstr=fld_src_arr, gswe_path=img_path, dataset='S2')
+
+    return img_path
+
 
 def raster_class_plot(input_dir:Path):
 
@@ -295,7 +337,11 @@ def raster_class_plot(input_dir:Path):
     # input_dir = args.input_dir
     # seasonal = args.seasonal
     # gdrive = args.gdrive
+    # false_color = args.false_color    # True/False
+    # true_color = args.true_color      # True/False
     gdrive = 'Q:/My Drive' # basepath for local GDrive
+    false_color = True
+    true_color = True
 
     make_dirs()
 
@@ -319,25 +365,11 @@ def raster_class_plot(input_dir:Path):
         img_name = data['id']
         fld_date = data['properties']['datetime'].split('T')[0]
         # bounds = data['bbox']
-        try:
-            gswe_path = glob(f'./raster_class_viz/data/GSWE_HLS/reprojected/{img_name}_*_JRC_reproj.tif')[0]
-        except IndexError:
-            try:
-                fld_src_arr = rxr.open_rasterio(rstr_path, masked=True).squeeze()
-                gswe_path = glob(f'./raster_class_viz/data/GSWE_HLS/{img_name}_*_JRC.tif')[0]
-            except IndexError:
-            # if not os.path.exists(gswe_path):
-                crs_wgs84 = CRS.from_string('EPSG:4326')
-                fld_reproj = fld_src_arr.rio.reproject(crs_wgs84, nodata=255)
-                bounds = fld_reproj.rio.bounds()
+        
+        gswe_path = get_gee_img_reproj(img_name, rstr_path, fld_date, gdrive, 'GSW')
 
-                task, gswe_path, date_info = download_seasonal_jrc_imgs(flood_date=fld_date, bounds=bounds, dt_set='HLS', img_name=img_name)#, tile=tile)
-                check_on_tasks_in_queue([task])
-                wait_for_local_sync(f'{gdrive}/{gswe_path}.tif')
-                move_gsw_tif(src=f'{gdrive}/{gswe_path}.tif', dst=f'./raster_class_viz/data/{gswe_path}.tif')
-                gswe_path = glob(f'./raster_class_viz/data/GSWE_HLS/{img_name}_*_JRC.tif')[0]
-
-            gswe_path = reproj(fld_rstr=fld_src_arr, gswe_path=gswe_path)
+        if (false_color or true_color):
+            img_path = get_gee_img_reproj(img_name, rstr_path, fld_date, gdrive, 'S2')
 
         with rio.open(gswe_path) as src:
             profile = src.profile
@@ -345,7 +377,15 @@ def raster_class_plot(input_dir:Path):
         calc_classes('HLS', img_name, './raster_class_viz/data/CLASS/', profile, rstr_path, gswe_path)
 
         # if seasonal:
-        plot_flood_permanent_seasonal(class_path=Path(f'./raster_class_viz/data/CLASS/HLS_{img_name}_CLASS.tif'))
+        if false_color and true_color:
+            plot_flood_permanent_seasonal(class_path=Path(f'./raster_class_viz/data/CLASS/HLS_{img_name}_CLASS.tif'), false_color=img_path, true_color=img_path)
+        elif false_color:
+            plot_flood_permanent_seasonal(class_path=Path(f'./raster_class_viz/data/CLASS/HLS_{img_name}_CLASS.tif'), false_color=img_path)
+        elif true_color:
+            plot_flood_permanent_seasonal(class_path=Path(f'./raster_class_viz/data/CLASS/HLS_{img_name}_CLASS.tif'), true_color=img_path)
+        else:
+            plot_flood_permanent_seasonal(class_path=Path(f'./raster_class_viz/data/CLASS/HLS_{img_name}_CLASS.tif'))
+
 
         plot_flood_permanent(Path(f'./raster_class_viz/data/CLASS/HLS_{img_name}_CLASS.tif'))
 

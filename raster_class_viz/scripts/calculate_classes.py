@@ -63,7 +63,7 @@ def calc_classes(dt_set: str, s2_name: str, out_dir: str, profile, gt_path=None,
             flood = np.where((gt == 1) & (jrc < 1), 3, 0)
             no_data = np.where(gt == 0, 255, 0)
             all_classes = perm_water + szn_water + flood + no_data
-        elif dt_set == 'HLS':
+        elif (dt_set == 'HLS') or (dt_set == 'S2'):
             perm_water = np.where((gt == 2) & (jrc == 2), 1, 0)
             szn_water = np.where((gt == 2) & (jrc == 1), 2, 0)
             flood = np.where((gt == 2) & (jrc < 1), 3, 0)
