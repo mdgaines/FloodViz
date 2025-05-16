@@ -49,7 +49,7 @@ def _get_collection(collection_name, date_start, bounds, season=True):
 
 # @retry(stop=stop_after_attempt(2), wait=wait_fixed(2))
 # @timeout(15)
-def download_seasonal_jrc_imgs(flood_date: str, bounds: ee.Geometry,
+def download_seasonal_jrc_imgs(flood_date: str, bounds: tuple,
                                collection_name: str = "JRC/GSW1_4/MonthlyHistory",
                                dt_set: str = '', img_name: str = '',
                                tile=None, monthly=False):
@@ -62,13 +62,14 @@ def download_seasonal_jrc_imgs(flood_date: str, bounds: ee.Geometry,
         'usgs': 'JRC_usgs',
         'unosat': 'JRC_unosat',
         'HLS' : 'GSWE_HLS',
-        'S2' : 'GSW_S2'
+        'S2' : 'GSW_S2',
+        'GSW' : 'GSW'
     }
     fldr = dt_set_fldr.get(dt_set)
     if dt_set == 'unosat':
         aoi = list(bounds.bounds.values)[0]
         bounds = ee.Geometry.BBox(aoi[0], aoi[1], aoi[2], aoi[3])
-    elif (dt_set == 'HLS') or (dt_set == 'S2'):
+    elif (dt_set == 'HLS') or (dt_set == 'S2') or (dt_set == 'GSW'):
         bounds = ee.Geometry.BBox(bounds[0], bounds[1], bounds[2], bounds[3])
     # flood_date is in YYYY-MM-DD format
     flood_yr = flood_date[:4]

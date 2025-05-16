@@ -3,30 +3,40 @@ from pathlib import Path
 
 
 
-def parse_viz_floods():
-    '''
-        Parse the expected command-line arguments for viz_floods.py
-    '''
-    parser = argparse.ArgumentParser(description='Plots and saves images of classified flood events.')
+# def parse_viz_floods():
+#     '''
+#         Parse the expected command-line arguments for viz_floods.py
+#     '''
+#     parser = argparse.ArgumentParser(description='Plots and saves images of classified flood events.')
 
-    # parser.add_help()
+#     # parser.add_help()
 
-    parser.add_argument('-in', '--input_dir', type=Path,
-                        # default='all',
-                        help='Input base path that has flood classified rasters of interest.')
+#     parser.add_argument('-in', '--input_dir', type=Path,
+#                         # default='all',
+#                         help='Input base path that has flood classified rasters of interest.')
     
-    # parser.add_argument('-s', '--seasonal', type=bool,
-    #                     default=True,
-    #                     help='Set to True for seasonal classification images.\nSet to False for annual classification images.')
+#     parser.add_argument('-szn', '--seasonal', type=bool,
+#                         default=True,
+#                         help='Set to True for seasonal classification images.\nSet to False for annual classification images.')
 
-    # parser.add_argument('-o', '--out_dir', type=str,
-    #                     default='../open_source_training/',
-    #                     help='Output directory for where files will be saved.')
-    # parser.add_argument('-p', '--path',
-    #                     default=DOWNLOADED_IMG_PATH,
-    #                     help='Path where the flood training datasets have been downloaded')
+#     parser.add_argument('-g', '--gdrive', type=Path,
+#                         default='Q:/My Drive',
+#                         help='Root Drive to your Desktop Google Drive')
+    
+#     parser.add_argument('-fc', '--false_color', type=bool,
+#                         default=True,
+#                         help='Display False Color image (True/False)')
+    
+#     parser.add_argument('-tc', '--true_color', type=bool,
+#                         default=True,
+#                         help='Display True Color image (True/False)')
+    
+#     parser.add_argument('-n', '--number', type=int,
+#                         default=3,
+#                         help='Number of images to loop through from input dir.')
+    
 
-    return(parser.parse_args())
+#     return(parser.parse_args())
 
 
 
@@ -46,12 +56,27 @@ def parse_viz_script():
     parser.add_argument('-in', '--input_dir', type=Path,
                         help='Input base path that has flood classified rasters of interest.')
     
-    # parser.add_argument('-o', '--out_dir', type=str,
-    #                     default='../open_source_training/',
-    #                     help='Output directory for where files will be saved.')
-    # parser.add_argument('-p', '--path',
-    #                     default=DOWNLOADED_IMG_PATH,
-    #                     help='Path where the flood training datasets have been downloaded')
+
+    parser.add_argument('-szn', '--seasonal', type=bool,
+                        default=True,
+                        help='Set to True for seasonal classification images.\nSet to False for annual classification images.')
+
+    parser.add_argument('-g', '--gdrive', type=Path,
+                        default='Q:/My Drive',
+                        help='Root Drive to your Desktop Google Drive')
+    
+    parser.add_argument('-fc', '--false_color', type=bool,
+                        default=True,
+                        help='Display False Color image (True/False)')
+    
+    parser.add_argument('-tc', '--true_color', type=bool,
+                        default=True,
+                        help='Display True Color image (True/False)')
+    
+    parser.add_argument('-n', '--number', type=int,
+                        default=3,
+                        help='Number of images to loop through from input dir.')
+    
 
     return(parser.parse_args())
 

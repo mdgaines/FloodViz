@@ -26,18 +26,26 @@ def main():
     args = parse_viz_script()
 
     script = args.script
+    input_dir = args.input_dir        # directory with classified imagery
+    seasonal = args.seasonal          # True/False
+    gdrive = args.gdrive              # Google Drive base path (e.g., 'Q:/My Drive')
+    false_color = args.false_color    # True/False
+    true_color = args.true_color      # True/False
+    n = args.number                   # Number of images to loop through in the FOR loop
 
     print(f'script: {script}\ntype: {type(script)}')
 
     if script == 'raster_class':
-        if args.input_dir is None:
-            input_dir = Path(input('Enter the directory that contains the flood classified rasters:'))
-        else:
-            input_dir = args.input_dir
-        print(f'script: {input_dir}\ntype: {type(input_dir)}')
+        print(f'input_dir: {input_dir}\ntype: {type(input_dir)}')
+        print(f'seasonal: {seasonal}\ntype: {type(seasonal)}')
+        print(f'gdrive: {gdrive}\ntype: {type(gdrive)}')
+        print(f'false_color: {false_color}\ntype: {type(false_color)}')
+        print(f'true_color: {true_color}\ntype: {type(true_color)}')
+        print(f'n: {n}\ntype: {type(n)}')
 
         # except:
-        raster_class_plot(input_dir)
+        raster_class_plot(input_dir, seasonal, gdrive, false_color, true_color, n)
+    
     elif script == 'flood_freq':
         # try:
         img_path = plot_flood_freq()
