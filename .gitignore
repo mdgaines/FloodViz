@@ -1,6 +1,7 @@
 *.ini
 *.lnk
-*.png
+raster_class_viz/imgs
+emdat_dfo_viz/imgs
 *.tif
 raster_class_viz/data/
 *__pycache__*
