@@ -130,7 +130,13 @@ def add_location_inset(class_src_arr, ax):
 
 def plot_flood_permanent_seasonal(class_path:Path, false_color:str='', true_color:str=''):
 
-    img_path = f'./raster_class_viz/imgs/{os.path.basename(class_path)[:-4]}.png'
+    if (false_color and true_color):
+        img_path = f'./raster_class_viz/imgs/seasonal/{os.path.basename(class_path)[:-4]}_FC-TC.png'
+    elif false_color:
+        img_path = f'./raster_class_viz/imgs/seasonal/{os.path.basename(class_path)[:-4]}_FC.png'
+    elif true_color:
+        img_path = f'./raster_class_viz/imgs/seasonal/{os.path.basename(class_path)[:-4]}_TC.png'
+
     if os.path.exists(img_path):
         print(f'{os.path.basename(img_path)} exists.')
         # return
@@ -215,7 +221,7 @@ def plot_flood_permanent_seasonal(class_path:Path, false_color:str='', true_colo
     ax3 = add_location_inset(class_src_arr, ax3)
 
     ax3.set_axis_off()
-    plt.savefig(img_path, dpi=300, format='png', )
+    plt.savefig(img_path, dpi=300, format='png', bbox_inches='tight')
     plt.close(f)
     # plt.show()
 
@@ -224,7 +230,13 @@ def plot_flood_permanent_seasonal(class_path:Path, false_color:str='', true_colo
 
 def plot_flood_permanent(class_path:Path, false_color:str='', true_color:str=''):
 
-    img_path = f'./raster_class_viz/imgs/{os.path.basename(class_path)[:-4]}.png'
+    if (false_color and true_color):
+        img_path = f'./raster_class_viz/imgs/permanent/{os.path.basename(class_path)[:-4]}_FC-TC.png'
+    elif false_color:
+        img_path = f'./raster_class_viz/imgs/permanent/{os.path.basename(class_path)[:-4]}_FC.png'
+    elif true_color:
+        img_path = f'./raster_class_viz/imgs/permanent/{os.path.basename(class_path)[:-4]}_TC.png'
+
     if os.path.exists(img_path):
         print(f'{os.path.basename(img_path)} exists.')
         # return
@@ -366,11 +378,22 @@ def get_gee_img_reproj(img_name, rstr_path, fld_date, gdrive, dataset):
             check_on_tasks_in_queue([task])
             wait_for_local_sync(f'{gdrive}/{img_path}.tif')
 
-            dwnld_path_lst = glob(f'{gdrive}/{img_path}*.tif')
-            if len(dwnld_path_lst) > 1:
-                gdal_merge_compressed(f'{gdrive}/{img_path}.tif', dwnld_path_lst)
+            if not os.path.exists(f'{gdrive}/{img_path}.tif'):
+                wait_for_local_sync(f'{os.getcwd()}/raster_class_viz/data/{img_path}.tif')
+                dwnld_path_lst = glob(f'./raster_class_viz/data/{dataset}/{img_name}_*_{dataset}.tif')
+                dwnld_path = f'{os.getcwd()}/raster_class_viz/data/{img_path}.tif'
+                
+                if len(dwnld_path_lst) > 1:
+                    gdal_merge_compressed(dwnld_path, dwnld_path_lst)
+            else:
+                dwnld_path_lst = glob(f'{gdrive}/{img_path}*.tif')
+                dwnld_path = f'{gdrive}/{img_path}*.tif'
+                
+                if len(dwnld_path_lst) > 1:
+                    gdal_merge_compressed(dwnld_path, dwnld_path_lst)
 
-            move_gsw_tif(src=f'{gdrive}/{img_path}.tif', dst=f'./raster_class_viz/data/{img_path}.tif')
+                move_gsw_tif(src=f'{gdrive}/{img_path}.tif', dst=f'./raster_class_viz/data/{img_path}.tif')
+
             img_path = glob(f'./raster_class_viz/data/{dataset}/{img_name}_*_{dataset}.tif')[0]
         
         img_path = reproj(fld_rstr=fld_src_arr, gswe_path=img_path, dataset='S2')
