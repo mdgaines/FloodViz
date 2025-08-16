@@ -143,7 +143,7 @@ def plot_flood_permanent_seasonal(class_path:Path, false_color:str='', true_colo
 
     class_labels = ['Non-water', 'Permanent Water', 'Seasonal Water', 'Flood Water', 'No Data']
 
-    class_src_arr = rxr.open_rasterio(class_path, masked=True).squeeze()
+    class_src_arr = rxr.open_rasterio(class_path, masked=False).squeeze()
 
     # Plot data using nicer colors
     colors = ['#abafb0', '#002b9c', '#7494e4', '#47eeff', 'black']
@@ -222,8 +222,8 @@ def plot_flood_permanent_seasonal(class_path:Path, false_color:str='', true_colo
 
     ax3.set_axis_off()
     plt.savefig(img_path, dpi=300, format='png', bbox_inches='tight')
-    plt.close(f)
-    # plt.show()
+    # plt.close(f)
+    plt.show()
 
     return
 
@@ -418,15 +418,15 @@ def raster_class_plot(
     # false_color = args.false_color    # True/False
     # true_color = args.true_color      # True/False
     # n = args.number                   # Number of images to loop through in the FOR loop
-    # gdrive = 'Q:/My Drive' # basepath for local GDrive
-    # false_color = True
-    # true_color = True
+    gdrive = 'Q:/My Drive' # basepath for local GDrive
+    false_color = True
+    true_color = True
 
     make_dirs()
 
     # flood_fl_lst = glob('Q:/.shortcut-targets-by-id/1-Owv0cvb_maGj6CjU3lJDrnx_wofctRz/flood_examples_mollie/*/*.tif')
-    # input_dir = 'Q:/.shortcut-targets-by-id/1iXFDnM6JEC6f0gm4-HjYgreTPUJc6Rat/selected_flood_results_vini_backup'
-    # flood_fl_lst = glob(f'{input_dir}/**/*.json', recursive=True)
+    input_dir = 'Q:/.shortcut-targets-by-id/1iXFDnM6JEC6f0gm4-HjYgreTPUJc6Rat/selected_flood_results_vini_backup'
+    flood_fl_lst = glob(f'{input_dir}/**/*.json', recursive=True)
 
     flood_rstr_lst = glob(f'{input_dir}/**/*.tif', recursive=True)
     flood_fl_lst = [glob(f'{os.path.dirname(os.path.dirname(i))}/*.json') for i in flood_rstr_lst]
@@ -434,13 +434,13 @@ def raster_class_plot(
     for i in range(len(flood_fl_lst)):
         if i > n:
             print(f'{n} images rendered.')
-            return
+            # return
         rstr_path = flood_rstr_lst[i]
         try:
             fl = flood_fl_lst[i][0]
         except IndexError:
             print(f'missing corresponding .json for {os.path.basename(os.path.dirname(os.path.dirname(rstr_path)))}')
-            continue
+            # continue
 
         with open(fl) as json_data:
             data = json.load(json_data)
@@ -456,7 +456,7 @@ def raster_class_plot(
         with rio.open(gswe_path) as src:
             profile = src.profile
 
-        calc_classes('HLS', img_name, './raster_class_viz/data/CLASS/', profile, rstr_path, gswe_path)
+        calc_classes('HLS', img_name, './raster_class_viz/data/CLASS/', profile, rstr_path, gswe_path, img_path)
 
         if seasonal:
             if false_color and true_color:
