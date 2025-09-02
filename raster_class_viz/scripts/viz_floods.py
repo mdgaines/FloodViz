@@ -65,9 +65,9 @@ def get_bounds(class_src_arr):
 
 def add_basemap(class_src_arr, ax):
 
-    cx.add_basemap(ax, crs=class_src_arr.rio.crs.to_string(), source=cx.providers.NASAGIBS.ASTER_GDEM_Greyscale_Shaded_Relief, alpha=1)
-    cx.add_basemap(ax, crs=class_src_arr.rio.crs.to_string(), source=cx.providers.CartoDB.PositronNoLabels, alpha=0)
-    cx.add_basemap(ax, crs=class_src_arr.rio.crs.to_string(), source=cx.providers.CartoDB.PositronOnlyLabels, zoom=10)
+    cx.add_basemap(ax, crs=class_src_arr.rio.crs.to_string(), source=cx.providers.NASAGIBS.ASTER_GDEM_Greyscale_Shaded_Relief, alpha=1, attribution=False)
+    cx.add_basemap(ax, crs=class_src_arr.rio.crs.to_string(), source=cx.providers.CartoDB.PositronNoLabels, alpha=0, attribution=False)
+    cx.add_basemap(ax, crs=class_src_arr.rio.crs.to_string(), source=cx.providers.CartoDB.PositronOnlyLabels, zoom=10, attribution=False)
 
     return ax
 
@@ -162,13 +162,13 @@ def plot_flood_permanent_seasonal(class_path:Path, false_color:str='', true_colo
         ep.plot_rgb(img_src_arr.values,
             rgb=[2, 1, 0],
             ax=ax1,
-            title="True Color",
+            title="True Color (Bands: Red, Green, Blue)",
             stretch=True,
             str_clip=5) 
         ep.plot_rgb(img_src_arr.values,
             rgb=[3, 2, 1],
             ax=ax2,
-            title="False Color",
+            title="False Color (Bands: NIR, Red, Green)",
             stretch=True,
             str_clip=5) 
     elif false_color:                               # false color additional images
@@ -177,7 +177,7 @@ def plot_flood_permanent_seasonal(class_path:Path, false_color:str='', true_colo
         ep.plot_rgb(img_src_arr.values,
             rgb=[3, 2, 1],
             ax=ax2,
-            title="False Color",
+            title="False Color (Bands: NIR, Red, Green)",
             stretch=True,
             str_clip=5) 
     elif true_color:                                # true color additional images
@@ -186,13 +186,13 @@ def plot_flood_permanent_seasonal(class_path:Path, false_color:str='', true_colo
         ep.plot_rgb(img_src_arr.values,
             rgb=[2, 1, 0],
             ax=ax1,
-            title="True Color",
+            title="True Color (Bands: Red, Green, Blue)",
             stretch=True,
             str_clip=5) 
     elif not (false_color and true_color):          # no additional images
         f, ax3 = plt.subplots(figsize=(11, 7.55))
 
-    im = class_src_arr.plot.imshow(cmap=cmap_alpha,
+    im1 = class_src_arr.plot.imshow(cmap=cmap,
                             norm=norm,
                             add_colorbar=False,
                             ax=ax3)
@@ -209,7 +209,7 @@ def plot_flood_permanent_seasonal(class_path:Path, false_color:str='', true_colo
     ax3 = add_scalebar_Narrow(ax3)
     
     # Add legend using earthpy
-    ep.draw_legend(im,
+    ep.draw_legend(im1,
                 titles=class_labels[0:5],
                 classes=[0,1,2,3,4],
                 bbox=(1.08, 0.5))
@@ -262,13 +262,13 @@ def plot_flood_permanent(class_path:Path, false_color:str='', true_color:str='')
         ep.plot_rgb(img_src_arr.values,
             rgb=[2, 1, 0],
             ax=ax1,
-            title="True Color",
+            title="True Color (Bands: Red, Green, Blue)",
             stretch=True,
             str_clip=5) 
         ep.plot_rgb(img_src_arr.values,
             rgb=[3, 2, 1],
             ax=ax2,
-            title="False Color",
+            title="False Color (Bands: NIR, Red, Green)",
             stretch=True,
             str_clip=5) 
     elif false_color:                               # false color additional images
@@ -277,7 +277,7 @@ def plot_flood_permanent(class_path:Path, false_color:str='', true_color:str='')
         ep.plot_rgb(img_src_arr.values,
             rgb=[3, 2, 1],
             ax=ax2,
-            title="False Color",
+            title="False Color (Bands: NIR, Red, Green)",
             stretch=True,
             str_clip=5) 
     elif true_color:                                # true color additional images
@@ -286,13 +286,13 @@ def plot_flood_permanent(class_path:Path, false_color:str='', true_color:str='')
         ep.plot_rgb(img_src_arr.values,
             rgb=[2, 1, 0],
             ax=ax1,
-            title="True Color",
+            title="True Color (Bands: Red, Green, Blue)",
             stretch=True,
             str_clip=5) 
     elif not (false_color and true_color):          # no additional images
         f, ax3 = plt.subplots(figsize=(11, 7.55))
 
-    im = class_src_arr.plot.imshow(cmap=cmap_alpha,
+    im1 = class_src_arr.plot.imshow(cmap=cmap,
                             norm=norm,
                             add_colorbar=False,
                             ax=ax3)
@@ -309,7 +309,7 @@ def plot_flood_permanent(class_path:Path, false_color:str='', true_color:str='')
     ax3 = add_scalebar_Narrow(ax3)
     
     # Add legend using earthpy
-    ep.draw_legend(im,
+    ep.draw_legend(im1,
                 titles=class_labels[0:4],
                 classes=[0,1,2,3],
                 bbox=(1.08, 0.5))
