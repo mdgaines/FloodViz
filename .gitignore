@@ -6,3 +6,4 @@ emdat_dfo_viz/imgs
 raster_class_viz/data/
 *__pycache__*
 *.vrt
+*test*

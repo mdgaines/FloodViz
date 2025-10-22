@@ -77,6 +77,10 @@ def parse_viz_script():
                         default=3,
                         help='Number of images to loop through from input dir.')
     
+    parser.add_argument('-h', '--hexbin', type=bool,
+                        default=False,
+                        help='Add hexbin plot to classification figure.')
+    
 
     return(parser.parse_args())
 
