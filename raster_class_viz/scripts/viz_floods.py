@@ -39,7 +39,7 @@ from raster_class_viz.scripts.rstr_tools import gdal_merge_compressed, reproj
 # from calculate_classes import calc_classes
 # from rstr_tools import gdal_merge_compressed, reproj
 
-# from cli import parse_viz_floods
+from cli import parse_viz_floods
 
 
 plt.rcParams['font.family'] = 'Times New Roman'
@@ -448,28 +448,28 @@ def raster_class_plot(
         n:int
         ):
 
-    # args = parse_viz_floods()
+    args = parse_viz_floods()
 
-    # input_dir = args.input_dir        # directory with classified imagery
-    # seasonal = args.seasonal          # True/False
-    # gdrive = args.gdrive              # Google Drive base path (e.g., 'Q:/My Drive')
-    # false_color = args.false_color    # True/False
-    # true_color = args.true_color      # True/False
-    # n = args.number                   # Number of images to loop through in the FOR loop
-    # h = args.hexbin                   # True/False to add a hexbin plot to the classification figure.
+    input_dir = args.input_dir        # directory with classified imagery
+    seasonal = args.seasonal          # True/False
+    gdrive = args.gdrive              # Google Drive base path (e.g., 'Q:/My Drive')
+    false_color = args.false_color    # True/False
+    true_color = args.true_color      # True/False
+    n = args.number                   # Number of images to loop through in the FOR loop
+    h = args.hexbin                   # True/False to add a hexbin plot to the classification figure.
     
     # for testing:
-    gdrive = 'Q:/My Drive' # basepath for local GDrive
-    false_color = True
-    true_color = True
-    seasonal = True
-    n = 3
-    h = True
+    # gdrive = 'Q:/My Drive' # basepath for local GDrive
+    # false_color = True
+    # true_color = True
+    # seasonal = True
+    # n = 3
+    # h = True
 
     make_dirs()
 
     # flood_fl_lst = glob('Q:/.shortcut-targets-by-id/1-Owv0cvb_maGj6CjU3lJDrnx_wofctRz/flood_examples_mollie/*/*.tif')
-    input_dir = 'Q:/.shortcut-targets-by-id/1iXFDnM6JEC6f0gm4-HjYgreTPUJc6Rat/selected_flood_results_vini_backup'
+    # input_dir = 'Q:/.shortcut-targets-by-id/1iXFDnM6JEC6f0gm4-HjYgreTPUJc6Rat/selected_flood_results_vini_backup'
     flood_fl_lst = glob(f'{input_dir}/**/*.json', recursive=True)
 
     flood_rstr_lst = glob(f'{input_dir}/**/*.tif', recursive=True)
