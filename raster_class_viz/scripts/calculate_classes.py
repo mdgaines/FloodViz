@@ -18,13 +18,13 @@ def calc_classes(dt_set: str, s2_name: str, out_dir: str, profile, gt_path=None,
     # generate path for reprojected S2 image in the output directory
     out_path = os.path.join(out_dir, '_'.join([dt_set, s2_name, 'CLASS.tif']))
     if os.path.exists(out_path):
-        print(f'{out_path} already exists.')
-        print('Running anyway')
-        # return
+        print(f'\t{out_path} already exists.')
+        # print('Running anyway')
+        return
     if gt_path:
         with rio.open(gt_path) as src:
             gt = src.read(1).astype('int')
-            print('gt type:', type(gt[0]))
+            # print('gt type:', type(gt[0]))
     else:
         print('No ground truth... exiting without bands.')
         return
@@ -79,6 +79,12 @@ def calc_classes(dt_set: str, s2_name: str, out_dir: str, profile, gt_path=None,
             flood = np.where((gt == 2) & (jrc < 1), 3, 0)
             no_data = np.where((gt == 1) & (s2 == 0), 255, 0)
             all_classes = perm_water + szn_water + flood + no_data
+        elif dt_set == 'floodsnet':
+            perm_water = np.where((gt == 1) & (jrc == 2), 1, 0)
+            szn_water = np.where((gt == 1) & (jrc == 1), 2, 0)
+            flood = np.where((gt == 1) & (jrc < 1), 3, 0)
+            no_data = np.where((gt == 0) & (s2 == 0), 255, 0)
+            all_classes = perm_water + szn_water + flood + no_data
 
     # write classified raster to output directory
     profile.update(
@@ -95,5 +101,5 @@ def calc_classes(dt_set: str, s2_name: str, out_dir: str, profile, gt_path=None,
         dst.write(all_classes.astype(np.uint8), 1)
         dst.set_band_description(1, 'CLASS')
 
-    print(f'{out_path} saved.')
+    print(f'\t{out_path} saved.')
     return

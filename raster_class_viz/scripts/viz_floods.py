@@ -39,7 +39,7 @@ from raster_class_viz.scripts.rstr_tools import gdal_merge_compressed, reproj
 # from calculate_classes import calc_classes
 # from rstr_tools import gdal_merge_compressed, reproj
 
-from cli import parse_viz_floods
+# from cli import parse_viz_floods
 
 
 plt.rcParams['font.family'] = 'Times New Roman'
@@ -69,9 +69,9 @@ def get_bounds(class_src_arr):
 
 def add_basemap(class_src_arr, ax):
 
-    cx.add_basemap(ax, crs=class_src_arr.rio.crs.to_string(), source=cx.providers.NASAGIBS.ASTER_GDEM_Greyscale_Shaded_Relief, alpha=1, attribution=False)
-    cx.add_basemap(ax, crs=class_src_arr.rio.crs.to_string(), source=cx.providers.CartoDB.PositronNoLabels, alpha=0, attribution=False)
-    cx.add_basemap(ax, crs=class_src_arr.rio.crs.to_string(), source=cx.providers.CartoDB.PositronOnlyLabels, zoom=10, attribution=False)
+    cx.add_basemap(ax, crs=class_src_arr.rio.crs.to_string(), source=cx.providers.NASAGIBS.ASTER_GDEM_Greyscale_Shaded_Relief, alpha=1, attribution=False, zorder=2)
+    cx.add_basemap(ax, crs=class_src_arr.rio.crs.to_string(), source=cx.providers.CartoDB.PositronNoLabels, alpha=0, attribution=False, zorder=3)
+    cx.add_basemap(ax, crs=class_src_arr.rio.crs.to_string(), source=cx.providers.CartoDB.PositronOnlyLabels, zoom=10, attribution=False, zorder=15)
 
     return ax
 
@@ -156,17 +156,31 @@ def add_hexbin(class_src_arr, ax):
     return ax
 
 
+def get_img_path_name(class_path:Path, false_color:str='', true_color:str='', szn:str='', h:bool=False):
+    
+    if h:
+        if (false_color and true_color):
+            img_path = f'./raster_class_viz/imgs/{szn}/{os.path.basename(class_path)[:-4]}_FC-TC_hexbin.png'
+        elif false_color:
+            img_path = f'./raster_class_viz/imgs/{szn}/{os.path.basename(class_path)[:-4]}_FC_hexbin.png'
+        elif true_color:
+            img_path = f'./raster_class_viz/imgs/{szn}/{os.path.basename(class_path)[:-4]}_TC_hexbin.png'
+    else:
+        if (false_color and true_color):
+            img_path = f'./raster_class_viz/imgs/{szn}/{os.path.basename(class_path)[:-4]}_FC-TC.png'
+        elif false_color:
+            img_path = f'./raster_class_viz/imgs/{szn}/{os.path.basename(class_path)[:-4]}_FC.png'
+        elif true_color:
+            img_path = f'./raster_class_viz/imgs/{szn}/{os.path.basename(class_path)[:-4]}_TC.png'
+
+    return img_path
+
 def plot_flood_permanent_seasonal(class_path:Path, false_color:str='', true_color:str='', h:bool=False):
 
-    if (false_color and true_color):
-        img_path = f'./raster_class_viz/imgs/seasonal/{os.path.basename(class_path)[:-4]}_FC-TC.png'
-    elif false_color:
-        img_path = f'./raster_class_viz/imgs/seasonal/{os.path.basename(class_path)[:-4]}_FC.png'
-    elif true_color:
-        img_path = f'./raster_class_viz/imgs/seasonal/{os.path.basename(class_path)[:-4]}_TC.png'
+    img_path = get_img_path_name(class_path, false_color, true_color, 'seasonal', h)
 
     if os.path.exists(img_path):
-        print(f'{os.path.basename(img_path)} exists.')
+        print(f'\t{os.path.basename(img_path)} exists.')
         # return
 
     class_labels = ['Non-water', 'Permanent Water', 'Seasonal Water', 'Flood Water', 'No Data']
@@ -223,7 +237,8 @@ def plot_flood_permanent_seasonal(class_path:Path, false_color:str='', true_colo
     im1 = class_src_arr.plot.imshow(cmap=cmap,
                             norm=norm,
                             add_colorbar=False,
-                            ax=ax3)
+                            ax=ax3,
+                            zorder=1)
     
     # add basemap
     ax3 = add_basemap(class_src_arr, ax3)
@@ -255,23 +270,19 @@ def plot_flood_permanent_seasonal(class_path:Path, false_color:str='', true_colo
 
     ax3.set_axis_off()
     plt.savefig(img_path, dpi=300, format='png', bbox_inches='tight')
-    # plt.close(f)
-    plt.show()
+    plt.close(f)
+    # plt.show()
+    print(f'{os.path.basename(img_path)} saved.')
 
     return
 
 
 def plot_flood_permanent(class_path:Path, false_color:str='', true_color:str='', h:bool=False):
 
-    if (false_color and true_color):
-        img_path = f'./raster_class_viz/imgs/permanent/{os.path.basename(class_path)[:-4]}_FC-TC.png'
-    elif false_color:
-        img_path = f'./raster_class_viz/imgs/permanent/{os.path.basename(class_path)[:-4]}_FC.png'
-    elif true_color:
-        img_path = f'./raster_class_viz/imgs/permanent/{os.path.basename(class_path)[:-4]}_TC.png'
+    img_path = get_img_path_name(class_path, false_color, true_color, 'permanent', h)
 
     if os.path.exists(img_path):
-        print(f'{os.path.basename(img_path)} exists.')
+        print(f'\t{os.path.basename(img_path)} exists.')
         # return
 
     class_labels = ['Non-water', 'Permanent +\nSeasonal Water', 'Flood Water', 'No Data']
@@ -359,9 +370,10 @@ def plot_flood_permanent(class_path:Path, false_color:str='', true_color:str='',
     ax3 = add_location_inset(class_src_arr, ax3)
 
     ax3.set_axis_off()
-    plt.savefig(img_path, dpi=300, format='png', )
+    plt.savefig(img_path, dpi=300, format='png', bbox_inches='tight')
     plt.close(f)
     # plt.show()
+    print(f'{os.path.basename(img_path)} saved.')
 
     return
 
@@ -406,17 +418,21 @@ def get_gee_img_reproj(img_name, rstr_path, fld_date, gdrive, dataset):
             bounds = fld_reproj.rio.bounds()
 
             if dataset == 'GSW':
+                fld_date = datetime.datetime.strptime(fld_date, "%Y-%m-%d").strftime("%Y-%m-%d")
                 task, img_path, date_info = download_seasonal_jrc_imgs(flood_date=fld_date, bounds=bounds, dt_set=dataset, img_name=img_name)#, tile=tile)
             elif dataset == 'S2':
-                tile = rstr_path.split('.')[3][1:] # for when we have the tile name in the image path. will need to be updated
+                try:
+                    tile = rstr_path.split('.')[3][1:] # for when we have the tile name in the image path. will need to be updated
+                except IndexError:
+                    tile = img_name
                 date_end = (datetime.datetime.strptime(fld_date, "%Y-%m-%d") + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
                 task, n_imgs, img_path_lst = download_s2_imgs(date_start=fld_date, date_end=date_end, bounds=bounds, dt_set=dataset, img_name=img_name, hls_tiles=[tile])
-                img_path = 'S2/' + img_path_lst[0]
+                img_path = img_path_lst[0]
 
             check_on_tasks_in_queue([task])
-            wait_for_local_sync(f'{gdrive}/{img_path}.tif')
+            wait_for_local_sync(f'{gdrive}/{dataset}/{img_path}.tif')
 
-            if not os.path.exists(f'{gdrive}/{img_path}.tif'):
+            if not os.path.exists(glob(f'{gdrive}/*/{img_path}.tif')[0]):
                 wait_for_local_sync(f'{os.getcwd()}/raster_class_viz/data/{img_path}.tif')
                 dwnld_path_lst = glob(f'./raster_class_viz/data/{dataset}/{img_name}_*_{dataset}.tif')
                 dwnld_path = f'{os.getcwd()}/raster_class_viz/data/{img_path}.tif'
@@ -424,17 +440,17 @@ def get_gee_img_reproj(img_name, rstr_path, fld_date, gdrive, dataset):
                 if len(dwnld_path_lst) > 1:
                     gdal_merge_compressed(dwnld_path, dwnld_path_lst)
             else:
-                dwnld_path_lst = glob(f'{gdrive}/{img_path}*.tif')
+                dwnld_path_lst = glob(f'{gdrive}/*/{img_path}*.tif')
                 dwnld_path = f'{gdrive}/{img_path}*.tif'
                 
                 if len(dwnld_path_lst) > 1:
                     gdal_merge_compressed(dwnld_path, dwnld_path_lst)
 
-                move_gsw_tif(src=f'{gdrive}/{img_path}.tif', dst=f'./raster_class_viz/data/{img_path}.tif')
+                move_gsw_tif(src=dwnld_path_lst[0], dst=f'./raster_class_viz/data/{dataset}/{img_path}.tif')
 
             img_path = glob(f'./raster_class_viz/data/{dataset}/{img_name}_*_{dataset}.tif')[0]
         
-        img_path = reproj(fld_rstr=fld_src_arr, gswe_path=img_path, dataset='S2')
+        img_path = reproj(fld_rstr=fld_src_arr, gswe_path=img_path, dataset=dataset)
 
     return img_path
 
@@ -445,18 +461,19 @@ def raster_class_plot(
         gdrive:Path,
         false_color:bool,
         true_color:bool,
-        n:int
+        n:int,
+        h:bool
         ):
 
-    args = parse_viz_floods()
+    # args = parse_viz_floods()
 
-    input_dir = args.input_dir        # directory with classified imagery
-    seasonal = args.seasonal          # True/False
-    gdrive = args.gdrive              # Google Drive base path (e.g., 'Q:/My Drive')
-    false_color = args.false_color    # True/False
-    true_color = args.true_color      # True/False
-    n = args.number                   # Number of images to loop through in the FOR loop
-    h = args.hexbin                   # True/False to add a hexbin plot to the classification figure.
+    # input_dir = args.input_dir        # directory with classified imagery
+    # seasonal = args.seasonal          # True/False
+    # gdrive = args.gdrive              # Google Drive base path (e.g., 'Q:/My Drive')
+    # false_color = args.false_color    # True/False
+    # true_color = args.true_color      # True/False
+    # n = args.number                   # Number of images to loop through in the FOR loop
+    # h = args.hexbin                   # True/False to add a hexbin plot to the classification figure.
     
     # for testing:
     # gdrive = 'Q:/My Drive' # basepath for local GDrive
@@ -464,35 +481,46 @@ def raster_class_plot(
     # true_color = True
     # seasonal = True
     # n = 3
-    # h = True
+    # h = False
 
     make_dirs()
 
     # flood_fl_lst = glob('Q:/.shortcut-targets-by-id/1-Owv0cvb_maGj6CjU3lJDrnx_wofctRz/flood_examples_mollie/*/*.tif')
+    # input_dir = r"Q:\.shortcut-targets-by-id\1SgdF6083uESHVdkIjBx5o-wSIUWvXPcf\Pak_max_flood/"
     # input_dir = 'Q:/.shortcut-targets-by-id/1iXFDnM6JEC6f0gm4-HjYgreTPUJc6Rat/selected_flood_results_vini_backup'
     flood_fl_lst = glob(f'{input_dir}/**/*.json', recursive=True)
 
-    flood_rstr_lst = glob(f'{input_dir}/**/*.tif', recursive=True)
+    flood_rstr_lst = glob(f'{input_dir}/**/pred*.tif', recursive=True)
     flood_fl_lst = [glob(f'{os.path.dirname(os.path.dirname(i))}/*.json') for i in flood_rstr_lst]
 
     for i in range(len(flood_fl_lst)):
-        if i > n:
-            print(f'{n} images rendered.')
+        if i >= n:
+            print(f'\n{n} images rendered.')
             # return
             break
         rstr_path = flood_rstr_lst[i]
+        print(f"\nGenerating figure for classified image:\n\t{rstr_path}")
+
         try:
             fl = flood_fl_lst[i][0]
-        except IndexError:
-            print(f'missing corresponding .json for {os.path.basename(os.path.dirname(os.path.dirname(rstr_path)))}')
-            continue
 
-        with open(fl) as json_data:
-            data = json.load(json_data)
-        img_name = data['id']
-        fld_date = data['properties']['datetime'].split('T')[0]
-        # bounds = data['bbox']
-        
+            with open(fl) as json_data:
+                data = json.load(json_data)
+                img_name = data['id']
+                fld_date = data['properties']['datetime'].split('T')[0]
+                dt_set = 'HLS'
+                # bounds = data['bbox']
+            
+        except IndexError:
+            # parse file path to determine S2 image
+            rstr_path_info_lst = rstr_path.split('\\')
+            # print(rstr_path_info_lst)
+            img_name = ''.join(rstr_path_info_lst[-7:-4])
+            fld_date = '-'.join(rstr_path_info_lst[-4:-1])
+            dt_set = 'floodsnet'
+            # print(f'missing corresponding .json for {os.path.basename(os.path.dirname(os.path.dirname(rstr_path)))}')
+            # continue
+
         gswe_path = get_gee_img_reproj(img_name, rstr_path, fld_date, gdrive, 'GSW')
 
         if (false_color or true_color):
@@ -501,26 +529,26 @@ def raster_class_plot(
         with rio.open(gswe_path) as src:
             profile = src.profile
 
-        calc_classes('HLS', img_name, './raster_class_viz/data/CLASS/', profile, rstr_path, gswe_path, img_path)
+        calc_classes(dt_set, img_name, './raster_class_viz/data/CLASS/', profile, rstr_path, gswe_path, img_path)
 
         if seasonal:
             if false_color and true_color:
-                plot_flood_permanent_seasonal(class_path=Path(f'./raster_class_viz/data/CLASS/HLS_{img_name}_CLASS.tif'), false_color=img_path, true_color=img_path, h=h)
+                plot_flood_permanent_seasonal(class_path=Path(f'./raster_class_viz/data/CLASS/{dt_set}_{img_name}_CLASS.tif'), false_color=img_path, true_color=img_path, h=h)
             elif false_color:
-                plot_flood_permanent_seasonal(class_path=Path(f'./raster_class_viz/data/CLASS/HLS_{img_name}_CLASS.tif'), false_color=img_path, h=h)
+                plot_flood_permanent_seasonal(class_path=Path(f'./raster_class_viz/data/CLASS/{dt_set}_{img_name}_CLASS.tif'), false_color=img_path, h=h)
             elif true_color:
-                plot_flood_permanent_seasonal(class_path=Path(f'./raster_class_viz/data/CLASS/HLS_{img_name}_CLASS.tif'), true_color=img_path, h=h)
+                plot_flood_permanent_seasonal(class_path=Path(f'./raster_class_viz/data/CLASS/{dt_set}_{img_name}_CLASS.tif'), true_color=img_path, h=h)
             else:
-                plot_flood_permanent_seasonal(class_path=Path(f'./raster_class_viz/data/CLASS/HLS_{img_name}_CLASS.tif'), h=h)
+                plot_flood_permanent_seasonal(class_path=Path(f'./raster_class_viz/data/CLASS/{dt_set}_{img_name}_CLASS.tif'), h=h)
 
         else:
             if false_color and true_color:
-                plot_flood_permanent(class_path=Path(f'./raster_class_viz/data/CLASS/HLS_{img_name}_CLASS.tif'), false_color=img_path, true_color=img_path, h=h)
+                plot_flood_permanent(class_path=Path(f'./raster_class_viz/data/CLASS/{dt_set}_{img_name}_CLASS.tif'), false_color=img_path, true_color=img_path, h=h)
             elif false_color:
-                plot_flood_permanent(class_path=Path(f'./raster_class_viz/data/CLASS/HLS_{img_name}_CLASS.tif'), false_color=img_path, h=h)
+                plot_flood_permanent(class_path=Path(f'./raster_class_viz/data/CLASS/{dt_set}_{img_name}_CLASS.tif'), false_color=img_path, h=h)
             elif true_color:
-                plot_flood_permanent(class_path=Path(f'./raster_class_viz/data/CLASS/HLS_{img_name}_CLASS.tif'), true_color=img_path, h=h)
+                plot_flood_permanent(class_path=Path(f'./raster_class_viz/data/CLASS/{dt_set}_{img_name}_CLASS.tif'), true_color=img_path, h=h)
             else:
-                plot_flood_permanent(class_path=Path(f'./raster_class_viz/data/CLASS/HLS_{img_name}_CLASS.tif'), h=h)
+                plot_flood_permanent(class_path=Path(f'./raster_class_viz/data/CLASS/{dt_set}_{img_name}_CLASS.tif'), h=h)
 
     return

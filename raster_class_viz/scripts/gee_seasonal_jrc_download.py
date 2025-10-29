@@ -181,4 +181,4 @@ def download_seasonal_jrc_imgs(flood_date: str, bounds: tuple,
         task.start()
         print('after  task = ee.batch.Export.image.toDrive( jrc_seasonal_perm,')
 
-    return task, os.path.join(fldr, jrc_name), date_info
+    return task, jrc_name, date_info

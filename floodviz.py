@@ -32,19 +32,22 @@ def main():
     false_color = args.false_color    # True/False
     true_color = args.true_color      # True/False
     n = args.number                   # Number of images to loop through in the FOR loop
+    h = args.hexbin                   # True/False to add a hexbin plot to the classification figure.
 
     print(f'script: {script}\ntype: {type(script)}')
 
     if script == 'raster_class':
-        print(f'input_dir: {input_dir}\ntype: {type(input_dir)}')
-        print(f'seasonal: {seasonal}\ntype: {type(seasonal)}')
-        print(f'gdrive: {gdrive}\ntype: {type(gdrive)}')
-        print(f'false_color: {false_color}\ntype: {type(false_color)}')
-        print(f'true_color: {true_color}\ntype: {type(true_color)}')
-        print(f'n: {n}\ntype: {type(n)}')
+        print(f'  input_dir: {input_dir}\ttype: {type(input_dir)}')
+        print(f'   seasonal: {seasonal}\ttype: {type(seasonal)}')
+        print(f'     gdrive: {gdrive}\ttype: {type(gdrive)}')
+        print(f'false_color: {false_color}\ttype: {type(false_color)}')
+        print(f' true_color: {true_color}\ttype: {type(true_color)}')
+        print(f'          n: {n}\t\ttype: {type(n)}')
+        print(f'     hexbin: {h}\ttype: {type(h)}')
+
 
         # except:
-        raster_class_plot(input_dir, seasonal, gdrive, false_color, true_color, n)
+        raster_class_plot(input_dir, seasonal, gdrive, false_color, true_color, n, h)
     
     elif script == 'flood_freq':
         # try:
