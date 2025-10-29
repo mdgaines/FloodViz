@@ -1,10 +1,8 @@
-# FloodViz
-
-## Scripts for visualizing flood events
+# FloodViz: Scripts for visualizing flood events
 
 ---
 
-### Set up
+## Set up
 
 Generate the python environment using the `flood_viz.yml` file.
 
@@ -13,8 +11,11 @@ Activate the environment:
 `conda activate flood_viz`
 
 ---
+---
 
-### Figure generation
+## Figure generation
+
+### Histogram
 
 To get a histogram of flood events from the DFO and EMDAT datasets (1985-2022), run:
 
@@ -26,6 +27,9 @@ To get a histogram of flood events from the DFO and EMDAT datasets (1985-2022), 
 </figure>
 
 ---
+---
+
+### Classification Plots
 
 To get a plot of a specific flood event, run:
 
@@ -41,8 +45,9 @@ To produce a series of flood plots, run:
 
 where the -in flag points to the parent directory containing all of the flood events you wish to plot.
 
+---
 
-Optional parameters:
+**Optional parameters:**
 
 ```
 usage: floodviz.py [-h] [-s SCRIPT] [-in INPUT_DIR] [-szn SEASONAL] [-g GDRIVE] [-fc FALSE_COLOR] [-tc TRUE_COLOR]
@@ -78,7 +83,7 @@ options:
 
 ---
 
-Example runs:
+**Example runs:**
 
 `python floodviz.py -s raster_class -in "Q:/.shortcut-targets-by-id/1SgdF6083uESHVdkIjBx5o-wSIUWvXPcf/Pak_max_flood/" -szn True -g "Q:/My Drive" -fc True -tc True -n 6 -hex False`
 
